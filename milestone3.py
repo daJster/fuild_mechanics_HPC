@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from milestone2 import collision_term, equilibruim_distribution
+from scipy.signal import argrelextrema
+from milestone2 import collision_term, equilibruim_distribution, rho, mu
 from milestone1 import streaming2D, result_repo, direction
 import random
 
@@ -54,15 +55,117 @@ def animate(file=None, frames=200, interval=100, collision=None, cmap="Blues", c
     ani.save(result_repo+file, writer='ffmpeg')
 
 def plot_rho(rho, file=None) :
+    plt.figure()
     plt.imshow(rho, cmap='Blues')
     plt.colorbar()
     plt.savefig(result_repo+file)
+    plt.close()
 #---------------------------------------------------------------------------------------------
 
 def plot_density_on_time() :
-    return
+    omegas = [.3, .5, .7, 1, 1.3, 1.5, 1.7]
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+    tmax = 5000
+    plt.figure()
+    for idx, omega in enumerate(omegas) :
+        collision_function = lambda density_grid : collision_term(density_grid, omega)
+        rho_grid_plot, velocity_grid_plot = create_sinus_density()
+        density_grid_plot = equilibruim_distribution(rho_grid_plot, velocity_grid_plot)
+        rho_grid_plot_1D = rho_grid_plot.sum(axis=1)
+        max_index = np.argmax(rho_grid_plot_1D)
+
+        plot_arr = np.zeros(tmax)
+        
+        for i in range(tmax) :
+            print(i, '/', tmax, end='\r')
+            density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, test=True)
+            plot_arr[i] = rho_grid_plot[max_index].sum()
+            rho_grid_plot = rho(density_grid_plot)
+            
+        plot_arr = (plot_arr/plot_arr.mean()) - 1  
+        
+        x = np.arange(tmax)
+        local_max_indices = argrelextrema(plot_arr, np.greater)[0]
+
+        plt.plot(x[local_max_indices], plot_arr[local_max_indices], color=colors[idx], label=str(omega))
+
+    plt.xlabel('Time')
+    plt.ylabel('Maximal density')
+    plt.legend()
+    plt.savefig(result_repo+'density_time_plot_with_omegas.png')
+    plt.close()
 
 def plot_velocity_on_time() :
+    omegas = [.3, .5, .7, 1, 1.3, 1.5, 1.7]
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+    tmax = 5000
+    plt.figure()
+    for idx, omega in enumerate(omegas) :
+        collision_function = lambda density_grid : collision_term(density_grid, omega)
+        rho_grid_plot, velocity_grid_plot = create_sinus_velocity(epsilon=.01)
+        density_grid_plot = equilibruim_distribution(rho_grid_plot, velocity_grid_plot)
+        mu_grid_plot = np.linalg.norm(mu(density_grid_plot), axis=0)
+        mu_grid_plot_1D = mu_grid_plot.sum(axis=0)
+        max_index = np.argmax(mu_grid_plot_1D)
+
+        plot_arr = np.zeros(tmax)
+        
+        for i in range(tmax) :
+            print(i, '/', tmax, end='\r')
+            density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, test=True)
+            plot_arr[i] = np.linalg.norm(mu(density_grid_plot), axis=0)[:, max_index].sum()
+            
+        plot_arr = (plot_arr/plot_arr.mean()) - 1  
+        
+        x = np.arange(tmax)
+        local_max_indices = argrelextrema(plot_arr, np.greater)[0]
+
+        plt.plot(x[local_max_indices], plot_arr[local_max_indices], color=colors[idx], label=str(omega))
+
+    plt.xlabel('Time')
+    plt.ylabel('Maximal velocity')
+    plt.legend()
+    plt.savefig(result_repo+'velocity_time_plot_with_omegas.png')
+    plt.close()
+
+def plot_velocity_on_viscosity() :
+    omegas = np.arange(.3, 1.7, 0.1)
+    vis = np.zeros(omegas.shape)
+    eps = .01
+    tmax = 5000
+    plt.figure()
+    for idx, omega in enumerate(omegas) :
+        collision_function = lambda density_grid : collision_term(density_grid, omega)
+        rho_grid_plot, velocity_grid_plot = create_sinus_velocity(epsilon=eps)
+        density_grid_plot = equilibruim_distribution(rho_grid_plot, velocity_grid_plot)
+        rho_grid_plot_1D = rho_grid_plot.sum(axis=1)
+        max_index = np.argmax(rho_grid_plot_1D)
+
+        plot_arr = np.zeros(tmax)
+        
+        for i in range(tmax) :
+            print(i, '/', tmax, end='\r')
+            density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, test=True)
+            plot_arr[i] = rho_grid_plot[max_index].sum()
+            rho_grid_plot = rho(density_grid_plot)
+            
+        plot_arr = (plot_arr/plot_arr.mean()) - 1  
+        x = np.arange(tmax)
+        local_max_indices = argrelextrema(plot_arr, np.greater)[0]
+        
+        viscosities = ((-1)*np.log((np.array(plot_arr[local_max_indices]) / (plot_arr[local_max_indices][0]))) * (velocity_grid_plot.shape[1] / (2*np.pi))**2) / x[local_max_indices]
+        viscosity = viscosities[1:].mean()
+        print(omega, viscosity)
+        vis[idx] = viscosity
+    
+    vis_theo = ((1/omegas) - 1/2)/3
+    plt.plot(omegas, vis, color='blue', label='experiment')
+    plt.plot(omegas, vis_theo, color='black', label='theory')
+    plt.xlabel('omegas')
+    plt.ylabel('viscosities')
+    plt.legend()
+    plt.savefig(result_repo+'velocity_viscosity_plot_with_omegas.png')
+    plt.close()
     return
    
 if __name__ == "__main__" :
@@ -72,5 +175,6 @@ if __name__ == "__main__" :
     plot_rho(create_sinus_density(epsilon=.1)[0], file="sinus_density.png")
     #animate(file="sinus_density.mp4", collision=collision_function, create_grid=create_sinus_density, frames=200, interval=100)
     #animate(file="sinus_velocity.mp4", collision=collision_function, create_grid=create_sinus_velocity, frames=400, interval=100)
-    plot_density_on_time()
+    #plot_density_on_time()
+    #plot_velocity_on_viscosity()
     plot_velocity_on_time()

@@ -32,10 +32,12 @@ def create_density_grid(x_shape=15, y_shape=10, v_shape=9, rand=.2, uniform=Fals
     return density_grid
 
 def plot_density_grid(density_grid, file=None) :
+    plt.figure()
     total_density = density_grid.sum(axis=0)
     plt.imshow(total_density, cmap='Blues')
     plt.colorbar()
     plt.savefig(result_repo+file)
+    plt.close()
 
 
 #---------------------------------------------------------------------------------------------
