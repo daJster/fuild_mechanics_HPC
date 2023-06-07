@@ -104,7 +104,7 @@ def plot_velocity_on_time() :
         collision_function = lambda density_grid : collision_term(density_grid, omega)
         rho_grid_plot, velocity_grid_plot = create_sinus_velocity(epsilon=.01)
         density_grid_plot = equilibruim_distribution(rho_grid_plot, velocity_grid_plot)
-        mu_grid_plot = np.linalg.norm(mu(density_grid_plot), axis=0)
+        mu_grid_plot = np.linalg.norm(velocity_grid_plot, axis=0)
         mu_grid_plot_1D = mu_grid_plot.sum(axis=0)
         max_index = np.argmax(mu_grid_plot_1D)
 
