@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from scipy.signal import argrelextrema
 from milestone2 import collision_term, equilibruim_distribution, rho, mu
-from milestone1 import streaming2D, result_repo, direction
+from milestone1 import streaming2D, result_repo, direction, plot_density_grid
 import random
 
 
@@ -33,10 +33,11 @@ def create_sinus_velocity(x_shape=300, y_shape=300, epsilon=.1) :
 
 
 #---------------------------------------------------------------------------------------------
-def animate(file=None, frames=200, interval=100, collision=None, cmap="Blues", create_grid=None) :
+def animate(file=None, frames=200, interval=100, collision=None, cmap="Blues", create_grid=None, boundary=False) :
     rho_grid_animate, velocity_grid_animate = create_grid()
     density_grid_animate = equilibruim_distribution(rho_grid_animate, velocity_grid_animate)
-    
+    print(rho_grid_animate.shape, velocity_grid_animate.shape, density_grid_animate.shape)
+
     total_density = density_grid_animate.sum(axis=0)
     fig = plt.figure()
     im = plt.imshow(total_density, animated=True, cmap=cmap)
@@ -44,7 +45,7 @@ def animate(file=None, frames=200, interval=100, collision=None, cmap="Blues", c
     def updatefig(frame) :
         nonlocal density_grid_animate, i
         i += 1
-        density_grid_animate = streaming2D(density_grid_animate, direction, collision=collision, test=True)
+        density_grid_animate = streaming2D(density_grid_animate, direction, collision=collision, test=True, boundary=boundary)
         frame = density_grid_animate.sum(axis=0)
         im.set_array(frame)
         print('frame :', i, "/", frames, end='\r')
@@ -115,7 +116,7 @@ def plot_velocity_on_time() :
             density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, test=True)
             plot_arr[i] = np.linalg.norm(mu(density_grid_plot), axis=0)[:, max_index].sum()
             
-        plot_arr = (plot_arr/plot_arr.mean()) - 1  
+        plot_arr = (plot_arr/plot_arr.mean())
         
         x = np.arange(tmax)
         local_max_indices = argrelextrema(plot_arr, np.greater)[0]
