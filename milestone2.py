@@ -35,7 +35,7 @@ def create_collision_grid() :
 if __name__ == "__main__" :
     
     density_grid = create_collision_grid()
-    # print(rho(density_grid).shape, direction.shape, W.shape)
+    print(rho(density_grid).shape, direction.shape, W.shape)
     collision_function = lambda density_grid : collision_term(density_grid, .8)
     plot_density_grid(density_grid, file='density_grid_collision.png')
     animate(file='density_grid_collision.mp4', frames=200, collision=collision_function, create_grid=create_collision_grid)

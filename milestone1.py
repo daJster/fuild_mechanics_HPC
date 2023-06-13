@@ -8,8 +8,11 @@ result_repo = 'result/'
 np.random.seed(1234)
 random.seed(12)
 
-direction = np.array([[0, 1, 0, -1, 0, 1, -1, -1, 1],
-                      [0, 0, 1, 0, -1, 1, 1, -1, -1]])
+# direction = np.array([[0, 1, 0, -1, 0, 1, -1, -1, 1],
+#                       [0, 0, 1, 0, -1, 1, 1, -1, -1]])
+
+direction = np.array([[0, 0, -1, 0, 1, -1, -1, 1, 1],
+                      [0, -1, 0, 1, 0, -1, 1, 1, -1]])
 
 def probability_density(f) :
     return f.sum(axis=0)
@@ -17,18 +20,18 @@ def probability_density(f) :
 def velocity(f) :
     return np.einsum("ij,jkl->ikl", direction, f)/probability_density(f)
 
-def create_density_grid(x_shape=15, y_shape=10, v_shape=9, rand=.2, uniform=False, uniform_value=(1/9)) :
+def create_density_grid(y_shape=15, x_shape=10, v_shape=9, rand=.2, uniform=False, uniform_value=(1/9)) :
     if uniform : 
-        density_grid = np.full((v_shape, x_shape, y_shape), uniform_value)
+        density_grid = np.full((v_shape, y_shape, x_shape), uniform_value)
     else :
-        density_grid = np.random.rand(v_shape, x_shape, y_shape)
+        density_grid = np.random.rand(v_shape, y_shape, x_shape)
         density_grid /= density_grid.sum(axis=0)
     # create holes in the matrix
     if rand :
-        for x in range(x_shape) :
-            for y in range(y_shape) :
+        for y in range(y_shape) :
+            for x in range(x_shape) :
                 if np.random.random() > rand :
-                    density_grid[:, x, y] = np.zeros(v_shape)
+                    density_grid[:, y, x] = np.zeros(v_shape)
     return density_grid
 
 def plot_density_grid(density_grid, file=None) :
@@ -46,7 +49,7 @@ def streaming2D(arr, direction, test=False, collision=False, boundary=False) :
     for i in range(direction.shape[1]) :
         acc[i, :, :] = np.roll(arr[i, :, :], shift=(direction[0][i], direction[1][i]), axis=(0, 1))
     if collision :
-        acc = collision(acc)
+       acc = collision(acc)
     if boundary :
         acc = boundary(acc)
     if test :

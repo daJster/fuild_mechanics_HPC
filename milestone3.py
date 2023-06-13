@@ -10,7 +10,7 @@ import random
 
 #---------------------------------------------------------------------------------------------
 def create_sinus_density(x_shape=300, y_shape=300, epsilon=.01, rho0=1) :
-    velocity_grid = np.zeros((2, x_shape, y_shape))
+    velocity_grid = np.zeros((2, y_shape, x_shape))
     Lx = x_shape  # Length of the x-axis
     x = np.arange(Lx)
     
@@ -20,7 +20,7 @@ def create_sinus_density(x_shape=300, y_shape=300, epsilon=.01, rho0=1) :
     return rho_grid, velocity_grid
             
 def create_sinus_velocity(x_shape=300, y_shape=300, epsilon=.1) :
-    rho_grid = np.full((x_shape, y_shape), 1)
+    rho_grid = np.full((y_shape, x_shape), 1)
     Ly = y_shape  # Length of the y-axis
     y = np.arange(y_shape)
     velocity_variation = epsilon * np.sin(2 * np.pi * y / Ly)
@@ -174,8 +174,8 @@ if __name__ == "__main__" :
     omega = 1
     collision_function = lambda density_grid : collision_term(density_grid, omega)
     plot_rho(create_sinus_density(epsilon=.1)[0], file="sinus_density.png")
-    #animate(file="sinus_density.mp4", collision=collision_function, create_grid=create_sinus_density, frames=200, interval=100)
-    #animate(file="sinus_velocity.mp4", collision=collision_function, create_grid=create_sinus_velocity, frames=400, interval=100)
-    #plot_density_on_time()
-    #plot_velocity_on_viscosity()
+    animate(file="sinus_density.mp4", collision=collision_function, create_grid=create_sinus_density, frames=200, interval=100)
+    animate(file="sinus_velocity.mp4", collision=collision_function, create_grid=create_sinus_velocity, frames=400, interval=100)
+    plot_density_on_time()
+    plot_velocity_on_viscosity()
     plot_velocity_on_time()
