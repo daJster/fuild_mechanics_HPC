@@ -21,6 +21,7 @@ def equilibruim_distribution(rho_grid, velocity_grid) :
 
 def collision_term(density_grid, relax) :
     return density_grid + relax*(equilibruim_distribution(rho(density_grid), mu(density_grid)) - density_grid) 
+
 #---------------------------------------------------------------------------------------------
     
 def create_collision_grid() : 
@@ -39,3 +40,4 @@ if __name__ == "__main__" :
     collision_function = lambda density_grid : collision_term(density_grid, .8)
     plot_density_grid(density_grid, file='density_grid_collision.png')
     animate(file='density_grid_collision.mp4', frames=200, collision=collision_function, create_grid=create_collision_grid)
+    animate(file='density_grid_collision_false.mp4', frames=200, collision=False, create_grid=create_collision_grid)

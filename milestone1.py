@@ -46,8 +46,10 @@ def plot_density_grid(density_grid, file=None) :
 #---------------------------------------------------------------------------------------------
 def streaming2D(arr, direction, test=False, collision=False, boundary=False) :
     acc = np.zeros_like(arr)
+    
     for i in range(direction.shape[1]) :
         acc[i, :, :] = np.roll(arr[i, :, :], shift=(direction[0][i], direction[1][i]), axis=(0, 1))
+        
     if collision :
        acc = collision(acc)
     if boundary :
@@ -87,5 +89,6 @@ def animate(file=None, frames=200, interval=100, collision=None, cmap="Blues", c
 if __name__ == "__main__":
     density_grid = create_density_grid(x_shape=30, y_shape=30)
     plot_density_grid(density_grid, file='density_grid.png')
-    streaming2D(density_grid,direction, test=True)
+    density_grid = streaming2D(density_grid,direction, test=True)
+    plot_density_grid(density_grid, file='density_grid_plusone.png')
     animate(file='density_animation.mp4', frames=200)

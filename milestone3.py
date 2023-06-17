@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm
 from matplotlib.animation import FuncAnimation
 from scipy.signal import argrelextrema
 from milestone2 import collision_term, equilibruim_distribution, rho, mu
@@ -14,7 +15,7 @@ def create_sinus_density(x_shape=300, y_shape=300, epsilon=.01, rho0=1) :
     Lx = x_shape  # Length of the x-axis
     x = np.arange(Lx)
     
-    density_variation = rho0 + epsilon * np.sin(2 * np.pi * x / Lx) # array 300
+    density_variation = rho0 + epsilon * np.sin(2   * np.pi * x / Lx) # array 300
     reshaped_array = density_variation.reshape(300, 1)
     rho_grid = np.tile(reshaped_array, (1, 300))
     return rho_grid, velocity_grid
@@ -63,11 +64,59 @@ def plot_rho(rho, file=None) :
     plt.close()
 #---------------------------------------------------------------------------------------------
 
+def plot_density_on_axis() :
+    omega = .7
+    tmax = 10000
+
+    fig, ax = plt.subplots()
+    
+    collision_function = lambda density_grid : collision_term(density_grid, omega)
+    rho_grid_plot, velocity_grid_plot = create_sinus_density()
+    density_grid_plot = equilibruim_distribution(rho_grid_plot, velocity_grid_plot)
+    rho_grid_plot_1D = rho_grid_plot.sum(axis=1)
+    max_index = np.argmax(rho_grid_plot_1D)
+
+    plot_arr = np.zeros(tmax)
+    
+    for i in range(tmax) :
+        print(i, '/', tmax, end='\r')
+        density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, test=True)
+        plot_arr[i] = rho_grid_plot[max_index].sum()
+        rho_grid_plot = rho(density_grid_plot)
+        
+    plot_arr = ((plot_arr/plot_arr.mean()) - 1)
+    x = np.arange(300)
+    plot_axis_arr = []
+    
+    for amplitude in plot_arr :
+        plot_axis_arr.append(amplitude*np.sin(x*2*np.pi/len(x)))
+    
+    plot_axis_arr = np.array(plot_axis_arr)
+    period = len(plot_axis_arr)//8
+    chosen_indices = [period*i for i in range(8)]
+    plot_axis_arr = plot_axis_arr[chosen_indices]
+    cmap = cm.get_cmap('viridis')
+    colors = [cmap(i / len(plot_axis_arr)) for i in range(len(plot_axis_arr))]
+    
+    for idx, arr in enumerate(plot_axis_arr) :
+        ax.plot(x, arr, color=colors[idx])
+        
+    
+    sm = plt.cm.ScalarMappable(cmap=cmap)
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax=ax)
+    
+    plt.xlabel('Y axis')
+    plt.ylabel('Amplitude')
+    plt.savefig(result_repo+'density_axis_plot.png')
+    plt.close()
+
 def plot_density_on_time() :
     omegas = [.3, .5, .7, 1, 1.3, 1.5, 1.7]
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
     tmax = 5000
     plt.figure()
+    
     for idx, omega in enumerate(omegas) :
         collision_function = lambda density_grid : collision_term(density_grid, omega)
         rho_grid_plot, velocity_grid_plot = create_sinus_density()
@@ -88,6 +137,7 @@ def plot_density_on_time() :
         x = np.arange(tmax)
         local_max_indices = argrelextrema(plot_arr, np.greater)[0]
 
+
         plt.plot(x[local_max_indices], plot_arr[local_max_indices], color=colors[idx], label=str(omega))
 
     plt.xlabel('Time')
@@ -95,7 +145,7 @@ def plot_density_on_time() :
     plt.legend()
     plt.savefig(result_repo+'density_time_plot_with_omegas.png')
     plt.close()
-
+    
 def plot_velocity_on_time() :
     omegas = [.3, .5, .7, 1, 1.3, 1.5, 1.7]
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
@@ -130,7 +180,7 @@ def plot_velocity_on_time() :
     plt.close()
 
 def plot_velocity_on_viscosity() :
-    omegas = np.arange(.3, 1.7, 0.1)
+    omegas = np.arange(0, 2, 0.1)
     vis = np.zeros(omegas.shape)
     eps = .01
     tmax = 5000
@@ -165,7 +215,7 @@ def plot_velocity_on_viscosity() :
     plt.xlabel('omegas')
     plt.ylabel('viscosities')
     plt.legend()
-    plt.savefig(result_repo+'velocity_viscosity_plot_with_omegas.png')
+    plt.savefig(result_repo+'velocity_viscosity_plot_with_omegas_2.png')
     plt.close()
     return
    
@@ -173,9 +223,10 @@ if __name__ == "__main__" :
          
     omega = 1
     collision_function = lambda density_grid : collision_term(density_grid, omega)
-    plot_rho(create_sinus_density(epsilon=.1)[0], file="sinus_density.png")
-    animate(file="sinus_density.mp4", collision=collision_function, create_grid=create_sinus_density, frames=200, interval=100)
-    animate(file="sinus_velocity.mp4", collision=collision_function, create_grid=create_sinus_velocity, frames=400, interval=100)
-    plot_density_on_time()
+    # plot_rho(create_sinus_density(epsilon=.1)[0], file="sinus_density.png")
+    # animate(file="sinus_density.mp4", collision=collision_function, create_grid=create_sinus_density, frames=200, interval=100)
+    # animate(file="sinus_velocity.mp4", collision=collision_function, create_grid=create_sinus_velocity, frames=400, interval=100)
+    # plot_density_on_time()
     plot_velocity_on_viscosity()
-    plot_velocity_on_time()
+    # plot_velocity_on_time()
+    # plot_density_on_axis()
