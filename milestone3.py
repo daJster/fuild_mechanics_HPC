@@ -54,11 +54,13 @@ def animate(file=None, frames=200, interval=100, collision=None, cmap="Blues", c
 
     ani = FuncAnimation(fig, updatefig, blit=True, frames=frames, interval=interval)
     cbar = fig.colorbar(im)
+    plt.gca().invert_yaxis()
     ani.save(result_repo+file, writer='ffmpeg')
 
 def plot_rho(rho, file=None) :
     plt.figure()
     plt.imshow(rho, cmap='Blues')
+    plt.gca().invert_yaxis()
     plt.colorbar()
     plt.savefig(result_repo+file)
     plt.close()
@@ -223,10 +225,10 @@ if __name__ == "__main__" :
          
     omega = 1
     collision_function = lambda density_grid : collision_term(density_grid, omega)
-    # plot_rho(create_sinus_density(epsilon=.1)[0], file="sinus_density.png")
-    # animate(file="sinus_density.mp4", collision=collision_function, create_grid=create_sinus_density, frames=200, interval=100)
-    # animate(file="sinus_velocity.mp4", collision=collision_function, create_grid=create_sinus_velocity, frames=400, interval=100)
-    # plot_density_on_time()
+    plot_rho(create_sinus_density(epsilon=.1)[0], file="sinus_density.png")
+    animate(file="sinus_density.mp4", collision=collision_function, create_grid=create_sinus_density, frames=200, interval=100)
+    animate(file="sinus_velocity.mp4", collision=collision_function, create_grid=create_sinus_velocity, frames=400, interval=100)
+    plot_density_on_time()
     plot_velocity_on_viscosity()
-    # plot_velocity_on_time()
-    # plot_density_on_axis()
+    plot_velocity_on_time()
+    plot_density_on_axis()
