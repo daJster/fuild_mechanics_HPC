@@ -43,38 +43,46 @@ def plot_density_grid(density_grid, file=None) :
 
 
 #---------------------------------------------------------------------------------------------
-def streaming2D(arr, direction, test=False, collision=False, boundary=False) :
-    acc = np.zeros_like(arr)
+def streaming2D(arr, direction, test=False, collision=False, boundary=False, pressure=False) :
+    acc = np.copy(arr)
+    
+    if pressure :
+        arr = pressure(arr)
     
     for i in range(direction.shape[1]) :
-        acc[i, :, :] = np.roll(arr[i, :, :], shift=(direction[1, i], direction[0, i]), axis=(0, 1))
+        arr[i, :, :] = np.roll(arr[i, :, :], shift=(direction[1, i], direction[0, i]), axis=(0, 1))
   
     if boundary :
-        acc = boundary(acc)      
+        arr = boundary(arr)      
     if collision :
-       acc = collision(acc)
+       arr = collision(arr)
     if test :
         try :
             assert np.isclose(arr.sum(), acc.sum(), rtol=10**(-2)) # testing if the mass is conserved after one stream
         except :
             print('AssertionError : the mass is not conserved during the stream.\n probability before : ', np.sum(arr), ' probablity after :',  np.sum(acc))
             raise AssertionError
-    # print(arr.sum(), "/" , acc.sum())
-    return acc
+    return arr
 #---------------------------------------------------------------------------------------------
 
-def animate(file=None, frames=200, interval=100, collision=None, cmap="Blues", create_grid=(lambda : create_density_grid(x_shape=30, y_shape=30)), boundary=False) :
+def animate(file=None, frames=200, interval=100, velocity_active=False, collision=None, pressure=False, cmap="Blues", create_grid=(lambda : create_density_grid(x_shape=30, y_shape=30)), boundary=False) :
     density_grid_animate = create_grid()
     total_density = density_grid_animate.sum(axis=0)
     fig = plt.figure()
-    im = plt.imshow(total_density, animated=True, cmap=cmap)
-    i = 0 
+    if velocity_active :
+        im = plt.imshow(velocity(density_grid_animate)[0, :, :], animated=True, cmap=cmap)
+    else :
+        im = plt.imshow(total_density, animated=True, cmap=cmap)
+    i = 0
+    
     def updatefig(frame) :
         nonlocal density_grid_animate, i
-        #print(velocity_grid_animate.sum())
         i += 1
-        density_grid_animate= streaming2D(density_grid_animate, direction, collision=collision, test=True, boundary=boundary)
-        frame = density_grid_animate.sum(axis=0)
+        density_grid_animate= streaming2D(density_grid_animate, direction, collision=collision, test=True, boundary=boundary, pressure=pressure)
+        if velocity_active :
+            frame  = velocity(density_grid_animate)[0, :, :]
+        else :
+            frame = density_grid_animate.sum(axis=0)
         im.set_array(frame)
         print('frame :', i, "/", frames, end='\r')
         return im,
