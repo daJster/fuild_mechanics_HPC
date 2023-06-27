@@ -8,8 +8,14 @@ import random
 # def equilibrium_distribution_efficient(rho, U_vector) :
 
 def set_poiseuille_boundary(probability_density_grid) :
-    Rhin = np.full(probability_density_grid.shape[1:], 1.1)
-    Rhout = np.full(probability_density_grid.shape[1:], .9)
+
+    cs = 1/3
+    pout = .1
+    pin = .01
+    delta_p = pout - pin
+    
+    Rhin = np.full(probability_density_grid.shape[1:], (pout + delta_p)/cs**2)
+    Rhout = np.full(probability_density_grid.shape[1:], pout/cs**2)
     
     velocity_grid = mu(probability_density_grid)
     
@@ -44,7 +50,10 @@ def create_poiseuille_grid() :
 def plot_velocity_profile() :
     framestop = 1000
     omega = 1.2
-    tmax = 8000
+    viscosity =  0.2
+    pout = .1
+    pin = .01
+    delta_p = pout - pin
     collision_function = lambda density_grid : collision_term(density_grid, omega)
     density_grid_plot = create_poiseuille_grid()
 
@@ -55,13 +64,38 @@ def plot_velocity_profile() :
         print(i, '/', framestop, end='\r')
         density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, boundary=set_couette_boundary_fixed, pressure=set_poiseuille_boundary, test=True)
         plot_arr = mu(density_grid_plot)[0, :, 150]
-        if i%100 == 0 and i != 0:
+        if i%100 == 0 and i != 0 and i > 699:
             plt.plot(plot_arr, label=str(i))
-        
+    
+    analytical_solution = [-delta_p*y*(y - density_grid_plot.shape[1])/(2*viscosity*rho(density_grid_plot).mean(axis=0).sum()) for y in range(density_grid_plot.shape[1])]
+    plt.plot(analytical_solution, label='theory')
     plt.xlabel('Y axis')
     plt.ylabel('Velocity')
     plt.legend()
     plt.savefig(result_repo+'velocity_on_axis_poiseuille_flow.png')
+    plt.close()
+    
+
+def plot_velocity_profile_heatmap(framestop = 1000) :
+    omega = 1.2
+    collision_function = lambda density_grid : collision_term(density_grid, omega)
+    density_grid_plot = create_poiseuille_grid()
+
+    plot_arr = np.zeros(300)
+    
+    plt.figure()
+    for i in range(framestop + 1) :
+        print(i, '/', framestop, end='\r')
+        density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, boundary=set_couette_boundary_fixed, pressure=set_poiseuille_boundary, test=True)
+        if i == framestop :
+            plot_arr = mu(density_grid_plot)[0, :, :]
+    
+    plt.imshow(plot_arr, cmap='viridis')
+    plt.xlabel('X axis')
+    plt.ylabel('Y axis')
+    plt.gca().invert_yaxis()
+    plt.colorbar()
+    plt.savefig(result_repo+'velocity_profile_poiseuille_flow_' + str(framestop) + '.png')
     plt.close()
     
     
@@ -70,3 +104,7 @@ if __name__ == "__main__" :
     collision_function = lambda density_grid : collision_term(density_grid, .7)
     animate(file="poiseuille_boundary.mp4", velocity_active=True, collision=collision_function, create_grid=create_poiseuille_grid, frames=200, interval=100, boundary=set_couette_boundary_fixed, pressure=set_poiseuille_boundary)
     plot_velocity_profile()
+    plot_velocity_profile_heatmap(framestop=1)
+    plot_velocity_profile_heatmap(framestop=500)
+    plot_velocity_profile_heatmap(framestop=1000)
+    
