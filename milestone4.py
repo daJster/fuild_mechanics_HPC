@@ -6,9 +6,11 @@ import random
 
 top_channels = [5, 2, 6]
 bottom_channels = [7, 4, 8]
+right_channels = [1, 5, 8]
+left_channels = [3, 6, 7]
     
 def create_couette_grid_fixed() :
-    density_grid_animate = create_density_grid(y_shape=302, x_shape=100, uniform=True, rand=False)
+    density_grid_animate = create_density_grid(y_shape=302, x_shape=302, uniform=True, rand=False)
     offset_x = 60
     offset_y = 70
     # filling the center of the grid

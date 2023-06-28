@@ -70,7 +70,10 @@ def animate(file=None, frames=200, interval=100, velocity_active=False, collisio
     total_density = density_grid_animate.sum(axis=0)
     fig = plt.figure()
     if velocity_active :
-        im = plt.imshow(velocity(density_grid_animate)[0, :, :], animated=True, cmap=cmap)
+        if velocity_active == 'norm' :
+            im  = plt.imshow(np.linalg.norm(velocity(density_grid_animate), axis=0)[:, :], animated=True, cmap=cmap)
+        else :
+            im = plt.imshow(velocity(density_grid_animate)[0, :, :], animated=True, cmap=cmap)
     else :
         im = plt.imshow(total_density, animated=True, cmap=cmap)
     i = 0
@@ -80,7 +83,10 @@ def animate(file=None, frames=200, interval=100, velocity_active=False, collisio
         i += 1
         density_grid_animate= streaming2D(density_grid_animate, direction, collision=collision, test=True, boundary=boundary, pressure=pressure)
         if velocity_active :
-            frame  = velocity(density_grid_animate)[0, :, :]
+            if velocity_active == 'norm' :
+                frame  = np.linalg.norm(velocity(density_grid_animate), axis=0)[:, :]
+            else  :
+                frame  = velocity(density_grid_animate)[0, :, :]
         else :
             frame = density_grid_animate.sum(axis=0)
         im.set_array(frame)
