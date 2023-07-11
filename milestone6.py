@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from milestone2 import collision_term, W, rho, equilibruim_distribution, mu
-from milestone1 import direction, create_density_grid, animate, plot_density_grid, result_repo, streaming2D
-from milestone4 import top_channels, bottom_channels, right_channels, left_channels, create_couette_grid_fixed
-import random
+from milestone2 import collision_term, W, mu
+from milestone1 import direction, create_density_grid, result_repo, streaming2D
+from milestone4 import top_channels, bottom_channels, right_channels, left_channels
 
-def create_sliding_lid_grid() :
+
+def create_sliding_lid_grid(x_shape, y_shape) :
     probability_density_grid = create_density_grid(y_shape=302, x_shape=302, rand=False, uniform=True)
     return probability_density_grid
 
@@ -50,11 +50,8 @@ def velocity_streamplot():
         density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, boundary=create_sliding_lid_boundaries, test=True)
         plot_arr_norm = mu(density_grid_plot)
         u, v = plot_arr_norm[0], plot_arr_norm[1]
+    
     plt.streamplot(x, y, u, v, density=1)
-
-        # # Update the plot
-        # plt.draw()
-        # plt.cla()
 
     plt.xlabel('X axis')
     plt.ylabel('Y axis')

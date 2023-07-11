@@ -10,12 +10,12 @@ import random
 def set_poiseuille_boundary(probability_density_grid) :
 
     cs = 1/3
-    pout = .1
-    pin = .01
+    pout = .3
+    pin = .03
     delta_p = pout - pin
     
-    Rhin = np.full(probability_density_grid.shape[1:], (pout + delta_p)/cs**2)
-    Rhout = np.full(probability_density_grid.shape[1:], pout/cs**2)
+    Rhin = np.full(probability_density_grid.shape[1:], (pout + delta_p)/cs)
+    Rhout = np.full(probability_density_grid.shape[1:], pout/cs)
     
     velocity_grid = mu(probability_density_grid)
     
@@ -48,11 +48,11 @@ def create_poiseuille_grid() :
     
 
 def plot_velocity_profile() :
-    framestop = 1000
+    framestop = 1300
     omega = 1.2
-    viscosity =  0.2
-    pout = .1
-    pin = .01
+    viscosity = 0.5
+    pout = .3
+    pin = .03
     delta_p = pout - pin
     collision_function = lambda density_grid : collision_term(density_grid, omega)
     density_grid_plot = create_poiseuille_grid()
@@ -64,7 +64,7 @@ def plot_velocity_profile() :
         print(i, '/', framestop, end='\r')
         density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, boundary=set_couette_boundary_fixed, pressure=set_poiseuille_boundary, test=True)
         plot_arr = mu(density_grid_plot)[0, :, 150]
-        if i%100 == 0 and i != 0 and i > 699:
+        if i%100 == 0 and i != 0 and i > 999:
             plt.plot(plot_arr, label=str(i))
     
     analytical_solution = [-delta_p*y*(y - density_grid_plot.shape[1])/(2*viscosity*rho(density_grid_plot).mean(axis=0).sum()) for y in range(density_grid_plot.shape[1])]
@@ -100,8 +100,8 @@ def plot_velocity_profile_heatmap(framestop = 1000) :
     
     
 if __name__ == "__main__" :
-    set_poiseuille_boundary(create_density_grid(uniform=True, rand=False, x_shape=302, y_shape=302))
-    collision_function = lambda density_grid : collision_term(density_grid, .7)
+    # set_poiseuille_boundary(create_density_grid(uniform=True, rand=False, x_shape=302, y_shape=302))
+    collision_function = lambda density_grid : collision_term(density_grid, 1.2)
     animate(file="poiseuille_boundary.mp4", velocity_active=True, collision=collision_function, create_grid=create_poiseuille_grid, frames=200, interval=100, boundary=set_couette_boundary_fixed, pressure=set_poiseuille_boundary)
     plot_velocity_profile()
     plot_velocity_profile_heatmap(framestop=1)
