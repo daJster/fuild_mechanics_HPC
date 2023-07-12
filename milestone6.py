@@ -35,7 +35,7 @@ def create_sliding_lid_boundaries(probability_density_grid) :
     return probability_density_grid
 
 def velocity_streamplot():
-    framestop = 1000000
+    framestop = 300000
     omega = 1.7
     collision_function = lambda density_grid : collision_term(density_grid, omega)
     density_grid_plot = create_sliding_lid_grid()

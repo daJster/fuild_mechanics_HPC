@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpi4py import MPI
 import argparse
-from milestone1 import streaming2D, direction
+from milestone1 import streaming2D, direction, create_density_grid
 from milestone2 import collision_term
-from milestone6 import create_sliding_lid_boundaries, create_sliding_lid_grid
+from milestone6 import create_sliding_lid_boundaries
 
 def send_cell_boundary(comm, probability_density_grid) :
     north_from, north_to = comm.Shift(1, 1)
@@ -13,24 +13,28 @@ def send_cell_boundary(comm, probability_density_grid) :
     west_from, west_to = comm.Shift(0, -1)
     
     # sending and receiving data
-    buffer = np.copy(probability_density_grid[:, 0, :])
-    comm.Sendrecv(np.copy(probability_density_grid[:, -2, :]), north_to, recvbuf=buffer, source=north_from)
-    probability_density_grid[:, 0, :] = buffer
+    recv_buffer = np.copy(probability_density_grid[:, 0, :])
+    send_buffer = np.copy(probability_density_grid[:, -2, :])
+    comm.Sendrecv(send_buffer, north_to, recvbuf=recv_buffer, source=north_from)
+    probability_density_grid[:, 0, :] = recv_buffer
 
     # send to south, receive from north
-    buffer = np.copy(probability_density_grid[:, -1, :])
-    comm.Sendrecv(np.copy(probability_density_grid[:, 1, :]), south_to, recvbuf=buffer, source=south_from)
-    probability_density_grid[:, -1, :] = buffer
+    recv_buffer = np.copy(probability_density_grid[:, -1, :])
+    send_buffer = np.copy(probability_density_grid[:, 1, :])
+    comm.Sendrecv(send_buffer, south_to, recvbuf=recv_buffer, source=south_from)
+    probability_density_grid[:, -1, :] = recv_buffer
 
     # send to the west, receive from the east
-    buffer = np.copy(probability_density_grid[:, :, -1])
-    comm.Sendrecv(np.copy(probability_density_grid[:, :, 1]), west_to, recvbuf=buffer, source=west_from)
-    probability_density_grid[:, :, -1] = buffer
+    recv_buffer = np.copy(probability_density_grid[:, :, -1])
+    send_buffer = np.copy(probability_density_grid[:, :, 1])
+    comm.Sendrecv(send_buffer, west_to, recvbuf=recv_buffer, source=west_from)
+    probability_density_grid[:, :, -1] = recv_buffer
 
     # send to east, receive from the west
-    buffer = np.copy(probability_density_grid[:, :, 0])
-    comm.Sendrecv(np.copy(probability_density_grid[:, :, -2]), east_to, recvbuf=buffer, source=east_from)
-    probability_density_grid[:, :, 0] = buffer
+    recv_buffer = np.copy(probability_density_grid[:, :, 0])
+    send_buffer = np.copy(probability_density_grid[:, :, -2])
+    comm.Sendrecv(send_buffer, east_to, recvbuf=recv_buffer, source=east_from)
+    probability_density_grid[:, :, 0] = recv_buffer
 
     return probability_density_grid
 
@@ -55,7 +59,7 @@ def parallel_sliding_lid(frames, node_shape, grid_size, omega) :
     
     collision_function = lambda density_grid : collision_term(density_grid, omega)
     
-    probability_density_grid = create_sliding_lid_grid(x_shape=node_dim_x, y_shape=node_dim_y)
+    probability_density_grid = probability_density_grid = create_density_grid(y_shape=node_dim_y, x_shape=node_dim_x, rand=False, uniform=True)
     
     for frame in range(frames) :
         print('proc ', rank, ' : ', frame, '/', frames, "\t coords : ", coords[0], ',', coords[1] , "\t shape : ", node_dim_x, ',', node_dim_y)
