@@ -22,22 +22,18 @@ def calculate_execution_time(script_path, arguments):
                     command += str(v) + ' '           
             else :
                 command += str(value) + ' '
-
-        command += ">> log.txt"
         try:
-            output = os.system(command)
+            os.system(command)
 
             # Calculate the execution time
             execution_time = time.time() - start_time
 
             result = {
                 'argument': arg,
-                'output': output,
                 'execution_time': execution_time
             }
             results.append(result)
             print(f"Argument: {result['argument']}")
-            print(f"Output: {result['output']}")
             print(f"Execution time: {result['execution_time']} seconds")
             print('-' * 30)
             print('\n')
@@ -57,22 +53,44 @@ def plot_results_execution_time(results) :
     plt.figure()
     plt.plot(plot_arr_nodes, plot_arr_mlups, label=str(result['argument']['gs'][0]), marker='s')
     plt.legend()
-    plt.xlabel('number of processes')
+    plt.xlabel('number of steps for 4 processors')
     plt.ylabel('MLUPS')
     plt.yscale('log')
     plt.savefig(result_repo+'plot_MLUPS.png')
     plt.close()
 
+def plot_full_velocity() :
+    velocity_x_path = result_repo+"velocity_x.npy"
+    velocity_y_path = result_repo+"velocity_y.npy"
+    
+    velocity_x = np.load(velocity_x_path)
+    velocity_y = np.load(velocity_y_path)
+    
+    x, y = np.arange(0, velocity_x.shape[1]), np.arange(0, velocity_x.shape[0])
+    x, y = np.meshgrid(x, y)
+
+    # Create a new figure and axis
+    fig, ax = plt.subplots()
+    ax.streamplot(x, y, velocity_x, velocity_y, density=1)
+    ax.set_xlabel('X axis')
+    ax.set_ylabel('Y axis')
+    plt.savefig(result_repo+'velocity_streamplot_sliding_lid_parallel.png')
+    plt.close()
+
+
+
 if __name__ == "__main__" :
     script_path = 'milestone7.py'
     arguments = [
-        {'np': 1, 'w': 1.6, 'gs': [300, 300], 'ns' : [1, 1], 'f': 400},
-        {'np': 2, 'w': 1.6, 'gs': [300, 300], 'ns' : [1, 2], 'f': 400},
-        {'np': 3, 'w': 1.6, 'gs': [300, 300], 'ns' : [1, 3], 'f': 400},
-        {'np': 4, 'w': 1.6, 'gs': [300, 300], 'ns' : [2, 2], 'f': 400}
+        {'np': 4, 'w': 1.6, 'gs': [500, 500], 'ns' : [2, 2], 'f': 4000},
+        {'np': 4, 'w': 1.6, 'gs': [500, 500], 'ns' : [2, 2], 'f': 4000},
+        {'np': 4, 'w': 1.6, 'gs': [500, 500], 'ns' : [2, 2], 'f': 4000},
+        {'np': 4, 'w': 1.6, 'gs': [500, 500], 'ns' : [2, 2], 'f': 4000}
     ]
     
     results = calculate_execution_time(script_path, arguments)
     plot_results_execution_time(results)
+    
+    plot_full_velocity()
 
     
