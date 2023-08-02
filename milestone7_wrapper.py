@@ -5,54 +5,56 @@ from milestone1 import result_repo
 import time
 import matplotlib.pyplot as plt
 
-def calculate_execution_time(script_path, arguments):
+def calculate_execution_time(script_path, arguments_set):
     results = []
+    for arguments in arguments_set :
+        results_inner = []
+        for arg in arguments :
+            start_time = time.time()
 
-    for arg in arguments:
-        start_time = time.time()
+            # Prepare the command to execute the script with the current argument
+            command = 'mpirun -np '+str(arg['np'])+' --use-hwthread-cpus python3.8 ' + script_path
+            for key, value in arg.items():
+                if key == 'np' :
+                    continue
+                command += ' -' + key + ' '
+                if isinstance(value, list) :
+                    for v in value : 
+                        command += str(v) + ' '           
+                else :
+                    command += str(value) + ' '
+            try:
+                os.system(command)
 
-        # Prepare the command to execute the script with the current argument
-        command = 'mpirun -np '+str(arg['np'])+' --use-hwthread-cpus python3.8 ' + script_path
-        for key, value in arg.items():
-            if key == 'np' :
-                continue
-            command += ' -' + key + ' '
-            if isinstance(value, list) :
-                for v in value : 
-                    command += str(v) + ' '           
-            else :
-                command += str(value) + ' '
-        try:
-            os.system(command)
+                # Calculate the execution time
+                execution_time = time.time() - start_time
 
-            # Calculate the execution time
-            execution_time = time.time() - start_time
-
-            result = {
-                'argument': arg,
-                'execution_time': execution_time
-            }
-            results.append(result)
-            print(f"Argument: {result['argument']}")
-            print(f"Execution time: {result['execution_time']} seconds")
-            print('-' * 30)
-            print('\n')
-            
-        except subprocess.CalledProcessError as e:
-            print(f"Error executing script with argument {arg}: {e}")
-    
+                result = {
+                    'argument': arg,
+                    'execution_time': execution_time
+                }
+                results_inner.append(result)
+                print(f"Argument: {result['argument']}")
+                print(f"Execution time: {result['execution_time']} seconds")
+                print('-' * 30)
+                print('\n')
+                
+            except subprocess.CalledProcessError as e:
+                print(f"Error executing script with argument {arg}: {e}")
+        results.append(results_inner)
     return results
 
-def plot_results_execution_time(results) :
-    plot_arr_mlups = []
-    plot_arr_nodes = []
-    for result in results :
-        plot_arr_mlups.append(result['argument']['f']*result['argument']['gs'][0]*result['argument']['gs'][1]/(result['execution_time']*10**6))
-        plot_arr_nodes.append(result['argument']['np'])
-        
+def plot_results_execution_time(results_set) :
     plt.figure()
-    plt.plot(plot_arr_nodes, plot_arr_mlups, label=str(result['argument']['gs'][0]), marker='s')
-    plt.legend()
+    for results in results_set :
+        plot_arr_mlups = []
+        plot_arr_nodes = []
+        for result in results :
+            plot_arr_mlups.append(result['argument']['f']*result['argument']['gs'][0]*result['argument']['gs'][1]/(result['execution_time']*10**6))
+            plot_arr_nodes.append(result['argument']['np'])
+        plt.plot(plot_arr_nodes, plot_arr_mlups, label=str(result['argument']['gs'][0]), marker='s')
+        
+    plt.legend('LB size')
     plt.xlabel('number of steps for 4 processors')
     plt.ylabel('MLUPS')
     plt.yscale('log')
@@ -78,17 +80,32 @@ def plot_full_velocity() :
     plt.close()
 
 
+def generate_arguments(grid_sizes, omega, frames, nodes=120) :
+    result = []
+    for size in grid_sizes :
+        i = 2
+        acc = []
+        while i**2 < nodes :
+            acc.append(
+                {'np' : i**2,
+                 'w' : omega,
+                 'gs' : [size, size],
+                 'ns' : [i, i],
+                 'f' : frames}
+            )
+            i += 1 
+        result.append(acc)
+    return result
 
 if __name__ == "__main__" :
     script_path = 'milestone7.py'
-    arguments = [
-        {'np': 4, 'w': 1.6, 'gs': [500, 500], 'ns' : [2, 2], 'f': 4000},
-        {'np': 4, 'w': 1.6, 'gs': [500, 500], 'ns' : [2, 2], 'f': 4000},
-        {'np': 4, 'w': 1.6, 'gs': [500, 500], 'ns' : [2, 2], 'f': 4000},
-        {'np': 4, 'w': 1.6, 'gs': [500, 500], 'ns' : [2, 2], 'f': 4000}
-    ]
+    grid_sizes = [500, 1000, 5000]
+    omega = 1.6
+    frames = 400
+    arguments = generate_arguments(grid_sizes, omega, frames, nodes=120)
     
     results = calculate_execution_time(script_path, arguments)
+
     plot_results_execution_time(results)
     
     plot_full_velocity()

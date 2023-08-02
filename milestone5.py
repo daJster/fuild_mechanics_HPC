@@ -1,11 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from milestone2 import collision_term, W, rho, equilibruim_distribution, mu
-from milestone1 import direction, create_density_grid, animate, plot_density_grid, result_repo, streaming2D
+from milestone1 import direction, create_density_grid, animate, result_repo, streaming2D
 from milestone4 import set_couette_boundary_fixed
 import random
-
-# def equilibrium_distribution_efficient(rho, U_vector) :
 
 def set_poiseuille_boundary(probability_density_grid) :
 
@@ -26,8 +24,8 @@ def set_poiseuille_boundary(probability_density_grid) :
     
     
     
-    feq_Rhin_uN = equilibruim_distribution(Rhin, uN)[:, :, -2] # XN
-    feq_Rhout_u1 = equilibruim_distribution(Rhout, u1)[:, :, 1] #X1
+    feq_Rhin_uN = equilibruim_distribution(Rhin, uN)[:, :, -2] # X N
+    feq_Rhout_u1 = equilibruim_distribution(Rhout, u1)[:, :, 1] # X 1
     feq = equilibruim_distribution(rho(probability_density_grid), velocity_grid)
 
 
@@ -84,6 +82,7 @@ def plot_velocity_profile_heatmap(framestop = 1000) :
     plot_arr = np.zeros(300)
     
     plt.figure()
+    
     for i in range(framestop + 1) :
         print(i, '/', framestop, end='\r')
         density_grid_plot = streaming2D(density_grid_plot, direction, collision=collision_function, boundary=set_couette_boundary_fixed, pressure=set_poiseuille_boundary, test=True)
@@ -100,9 +99,10 @@ def plot_velocity_profile_heatmap(framestop = 1000) :
     
     
 if __name__ == "__main__" :
-    # set_poiseuille_boundary(create_density_grid(uniform=True, rand=False, x_shape=302, y_shape=302))
     collision_function = lambda density_grid : collision_term(density_grid, 1.2)
+    
     animate(file="poiseuille_boundary.mp4", velocity_active=True, collision=collision_function, create_grid=create_poiseuille_grid, frames=200, interval=100, boundary=set_couette_boundary_fixed, pressure=set_poiseuille_boundary)
+    
     plot_velocity_profile()
     plot_velocity_profile_heatmap(framestop=1)
     plot_velocity_profile_heatmap(framestop=500)

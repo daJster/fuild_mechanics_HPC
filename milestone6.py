@@ -21,6 +21,7 @@ def create_sliding_lid_boundaries(west=True, east=True, north=True, south=True) 
             cell_top = np.copy(probability_density_grid[:, -1, x])
             cell_bottom = np.copy(probability_density_grid[:, 0, x])
             proba_cell_top = cell_top.sum()
+            
             # new moving densities
             new_cell_top_8 = cell_top[6] - 2*W[6]*proba_cell_top*np.dot(direction[:, 6], wall_speed)/np.dot(direction[:, 6], direction[:, 6])
             new_cell_top_4 = cell_top[2] - 2*W[2]*proba_cell_top*np.dot(direction[:, 2], wall_speed)/np.dot(direction[:, 2], direction[:, 2])
@@ -32,9 +33,12 @@ def create_sliding_lid_boundaries(west=True, east=True, north=True, south=True) 
             if south :
                 # bottom boundary
                 probability_density_grid[top_channels, 0, x] = cell_bottom[bottom_channels]
+                
+            # now change axis
             y = x
             cell_right = np.copy(probability_density_grid[:, y, -1])
             cell_left = np.copy(probability_density_grid[:, y, 0])
+            
             if east :
                 # right boundary
                 probability_density_grid[left_channels, y, -1] = cell_right[right_channels]
@@ -72,6 +76,8 @@ def velocity_streamplot():
 
 if __name__ == "__main__" :
     collision_function = lambda density_grid : collision_term(density_grid, .53)
-    # animate(file='sliding_lid.mp4', frames=2000, velocity_active='norm', cmap='viridis', collision=collision_function, create_grid=create_sliding_lid_grid, boundary=create_sliding_lid_boundaries)
-    # animate(file='sliding_lid_test_boundaries.mp4', frames=1000, collision=collision_function, create_grid=create_couette_grid_fixed, boundary=create_sliding_lid_boundaries)
+    
+    animate(file='sliding_lid.mp4', frames=2000, velocity_active='norm', cmap='viridis', collision=collision_function, create_grid=create_sliding_lid_grid, boundary=create_sliding_lid_boundaries)
+    animate(file='sliding_lid_test_boundaries.mp4', frames=1000, collision=collision_function, create_grid=create_couette_grid_fixed, boundary=create_sliding_lid_boundaries)
+    
     velocity_streamplot()

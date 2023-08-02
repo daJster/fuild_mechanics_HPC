@@ -6,6 +6,7 @@ import random
 
 W = np.array([4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36])
 
+
 rho = lambda density_grid : probability_density(density_grid)
 mu = lambda density_grid : velocity(density_grid)
 
@@ -20,11 +21,13 @@ def equilibruim_distribution(rho_grid, velocity_grid) :
     return result
 
 def collision_term(density_grid, relax) :
+    # this is the collision operator used to activate or disactivate the collision effect
     return density_grid + relax*(equilibruim_distribution(rho(density_grid), mu(density_grid)) - density_grid) 
 
 #---------------------------------------------------------------------------------------------
     
 def create_collision_grid() : 
+    # creates a specific grid to test the collision effect
     density_grid_animate = create_density_grid(x_shape=300, y_shape=300, uniform=True, rand=False)
     offset = 140 
     # filling the center of the grid
@@ -37,7 +40,15 @@ if __name__ == "__main__" :
     
     density_grid = create_collision_grid()
     print(rho(density_grid).shape, direction.shape, W.shape)
+    
+    # create a lambda function for the collision operator with omega equal to 0.8
     collision_function = lambda density_grid : collision_term(density_grid, .8)
+    
+    # check the initial state of the grid
     plot_density_grid(density_grid, file='density_grid_collision.png')
+    
+    # animate with collision
     animate(file='density_grid_collision.mp4', frames=200, collision=collision_function, create_grid=create_collision_grid)
+    
+    # animate without collision for comparison reasons
     animate(file='density_grid_collision_false.mp4', frames=200, collision=False, create_grid=create_collision_grid)

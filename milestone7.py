@@ -151,8 +151,12 @@ def parallel_sliding_lid(frames, node_shape, grid_size, omega) :
         
     for frame in range(frames) :
         print('proc ', rank, ' : ', frame, '/', frames, "\t coords : ", coords[0], ',', coords[1] , "\t shape : ", node_dim_x, ',', node_dim_y)
+        
+        # send boundary values
         probability_density_grid = send_cell_boundary(cartcomm, probability_density_grid, direction_dict)
+        
         u = velocity(probability_density_grid)
+        
         probability_density_grid = streaming2D(probability_density_grid, direction, collision=collision_function, \
             boundary=create_sliding_lid_boundaries(
                 north=proc_position["north"],

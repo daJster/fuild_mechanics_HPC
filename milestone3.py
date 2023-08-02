@@ -4,13 +4,14 @@ from matplotlib import cm
 from matplotlib.animation import FuncAnimation
 from scipy.signal import argrelextrema
 from milestone2 import collision_term, equilibruim_distribution, rho, mu
-from milestone1 import streaming2D, result_repo, direction, plot_density_grid
+from milestone1 import streaming2D, result_repo, direction, animate
 import random
 
 
 
 #---------------------------------------------------------------------------------------------
 def create_sinus_density(x_shape=300, y_shape=300, epsilon=.01, rho0=1) :
+    # creates a sinus density grid with null velocity
     velocity_grid = np.zeros((2, y_shape, x_shape))
     Lx = x_shape  # Length of the x-axis
     x = np.arange(Lx)
@@ -21,6 +22,7 @@ def create_sinus_density(x_shape=300, y_shape=300, epsilon=.01, rho0=1) :
     return rho_grid, velocity_grid
             
 def create_sinus_velocity(x_shape=300, y_shape=300, epsilon=.1) :
+    # creates a sinus velocity grid with null density
     rho_grid = np.full((y_shape, x_shape), 1)
     Ly = y_shape  # Length of the y-axis
     y = np.arange(y_shape)
@@ -34,30 +36,8 @@ def create_sinus_velocity(x_shape=300, y_shape=300, epsilon=.1) :
 
 
 #---------------------------------------------------------------------------------------------
-def animate(file=None, frames=200, interval=100, collision=None, cmap="Blues", create_grid=None, boundary=False) :
-    rho_grid_animate, velocity_grid_animate = create_grid()
-    density_grid_animate = equilibruim_distribution(rho_grid_animate, velocity_grid_animate)
-    print(rho_grid_animate.shape, velocity_grid_animate.shape, density_grid_animate.shape)
-
-    total_density = density_grid_animate.sum(axis=0)
-    fig = plt.figure()
-    im = plt.imshow(total_density, animated=True, cmap=cmap)
-    i = 0 
-    def updatefig(frame) :
-        nonlocal density_grid_animate, i
-        i += 1
-        density_grid_animate = streaming2D(density_grid_animate, direction, collision=collision, test=True, boundary=boundary)
-        frame = density_grid_animate.sum(axis=0)
-        im.set_array(frame)
-        print('frame :', i, "/", frames, end='\r')
-        return im,
-
-    ani = FuncAnimation(fig, updatefig, blit=True, frames=frames, interval=interval)
-    cbar = fig.colorbar(im)
-    plt.gca().invert_yaxis()
-    ani.save(result_repo+file, writer='ffmpeg')
-
 def plot_rho(rho, file=None) :
+    # plot the density rho given with a file name
     plt.figure()
     plt.imshow(rho, cmap='Blues')
     plt.gca().invert_yaxis()
@@ -70,8 +50,10 @@ def plot_density_on_axis() :
     omega = .7
     tmax = 10000
 
+    # initiate figure
     fig, ax = plt.subplots()
     
+    # initiate grid
     collision_function = lambda density_grid : collision_term(density_grid, omega)
     rho_grid_plot, velocity_grid_plot = create_sinus_density()
     density_grid_plot = equilibruim_distribution(rho_grid_plot, velocity_grid_plot)
@@ -226,8 +208,16 @@ if __name__ == "__main__" :
     omega = 1
     collision_function = lambda density_grid : collision_term(density_grid, omega)
     plot_rho(create_sinus_density(epsilon=.1)[0], file="sinus_density.png")
-    animate(file="sinus_density.mp4", collision=collision_function, create_grid=create_sinus_density, frames=200, interval=100)
-    animate(file="sinus_velocity.mp4", collision=collision_function, create_grid=create_sinus_velocity, frames=400, interval=100)
+    
+    sinus_density = create_sinus_density()
+    sinus_velocity = create_sinus_velocity()
+    create_sinus_density_lambda = lambda  : equilibruim_distribution(sinus_density[0], sinus_density[1])
+    create_sinus_velocity_lambda = lambda  : equilibruim_distribution(sinus_velocity[0], sinus_velocity[1])
+    
+    animate(file="sinus_density.mp4", collision=collision_function, create_grid=create_sinus_density_lambda, frames=200, interval=100)
+    animate(file="sinus_velocity.mp4", collision=collision_function, create_grid=create_sinus_velocity_lambda, frames=400, interval=100)
+    
+    
     plot_density_on_time()
     plot_velocity_on_viscosity()
     plot_velocity_on_time()
