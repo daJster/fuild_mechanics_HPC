@@ -2,8 +2,12 @@ import subprocess
 import os
 import numpy as np
 from milestone1 import result_repo
+import argparse
 import time
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+import re
 
 def calculate_execution_time(script_path, arguments_set):
     results = []
@@ -44,20 +48,46 @@ def calculate_execution_time(script_path, arguments_set):
         results.append(results_inner)
     return results
 
-def plot_results_execution_time(results_set) :
+def read_output_parallel(filename) :
+    # Read the file
+    with open(filename, 'r') as file:
+        data = file.read()
+
+    # Extract relevant information using regular expressions
+    pattern = r"Argument: {'np': (\d+), 'w': ([\d.]+), 'gs': \[(\d+), (\d+)\], 'ns': \[(\d+), (\d+)\], 'f': (\d+)}\nExecution time: ([\d.]+) seconds\n------------------------------"
+    matches = re.findall(pattern, data)
+
+    # Create a list of dictionaries to store the extracted data
+    extracted_data = []
+    for match in matches:
+        extracted_data.append({
+            'np': int(match[0]),
+            'w': float(match[1]),
+            'gs_x': int(match[2]),
+            'gs_y': int(match[3]),
+            'ns_x': int(match[4]),
+            'ns_y': int(match[5]),
+            'f': int(match[6]),
+            'execution_time': float(match[7])
+        })
+
+    # Create a pandas DataFrame from the extracted data
+    df = pd.DataFrame(extracted_data)
+    
+    return df
+
+
+def plot_results_execution_time(filename) :
+    df = read_output_parallel(filename)
+    df["grid_size"] = df['gs_x']*df['gs_y']
+    df["mlups"] = round(df['grid_size']*df['f']/(df['execution_time']*10**6))
+    print("results :\n", df)
     plt.figure()
-    for results in results_set :
-        plot_arr_mlups = []
-        plot_arr_nodes = []
-        for result in results :
-            plot_arr_mlups.append(result['argument']['f']*result['argument']['gs'][0]*result['argument']['gs'][1]/(result['execution_time']*10**6))
-            plot_arr_nodes.append(result['argument']['np'])
-        plt.plot(plot_arr_nodes, plot_arr_mlups, label=str(result['argument']['gs'][0]), marker='s')
-        
-    plt.legend('LB size')
-    plt.xlabel('number of steps for 4 processors')
-    plt.ylabel('MLUPS')
-    plt.yscale('log')
+    sns.set_theme()
+    sns.lineplot(x="np", y="mlups", hue="grid_size", marker='o', markers=True, palette="Set2", markersize=5, data=df)
+    plt.legend(title="grid size")
+    plt.xlabel('number of processors')
+    plt.ylabel('MLUPS (million lattice units per second)')
     plt.savefig(result_repo+'plot_MLUPS.png')
     plt.close()
 
@@ -98,16 +128,24 @@ def generate_arguments(grid_sizes, omega, frames, nodes=120) :
     return result
 
 if __name__ == "__main__" :
-    script_path = 'milestone7.py'
-    grid_sizes = [500, 1000, 5000]
-    omega = 1.6
-    frames = 400
-    arguments = generate_arguments(grid_sizes, omega, frames, nodes=120)
+    parser = argparse.ArgumentParser()
     
-    results = calculate_execution_time(script_path, arguments)
+    parser.add_argument("-run", "--run", action='store_true', default=False)
+    parser.add_argument('-plot', '--plot', action='store_true', default=False)
+    args = parser.parse_args()
+    
+    if args.run :
+        script_path = 'milestone7.py'
+        grid_sizes = [500, 1000, 5000]
+        omega = 1.6
+        frames = 400
+        arguments = generate_arguments(grid_sizes, omega, frames, nodes=120)
+        
+        calculate_execution_time(script_path, arguments)
 
-    plot_results_execution_time(results)
-    
-    plot_full_velocity()
+    if args.plot :
+        output_parallel_file = "./output_parallel.txt" 
+        plot_results_execution_time(output_parallel_file)
+        # plot_full_velocity()
 
     

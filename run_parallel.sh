@@ -23,4 +23,4 @@ echo "Each node has ${SLURM_MEM_PER_NODE} of memory allocated to this job."
 echo "${SLURM_NTASKS} tasks have been succesfully allocated"
 
 # Running the wrapper of parallel code
-python3 milestone7_wrapper.py
+python3 milestone7_wrapper.py -run >> output_parallel.txt
