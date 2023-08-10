@@ -67,7 +67,18 @@ def save_mpiio(comm, fn, g_kl):
     
     
 def send_cell_boundary(comm, probability_density_grid, direction_dict) :
+    """
+    Send and receive boundary values of the probability density grid.
 
+    Parameters:
+    - comm (MPI.Comm): MPI communicator object.
+    - probability_density_grid (numpy.ndarray): Probability density grid.
+    - direction_dict (dict): Dictionary containing communication directions.
+
+    Returns:
+    numpy.ndarray: Updated probability density grid with boundary values exchanged.
+    """
+    
     # send to north, receive from south
     recv_buffer = np.copy(probability_density_grid[:, 0, :])
     send_buffer = np.copy(probability_density_grid[:, -2, :])
@@ -95,101 +106,139 @@ def send_cell_boundary(comm, probability_density_grid, direction_dict) :
     return probability_density_grid
 
 
-def parallel_sliding_lid(frames, node_shape, grid_size, omega) :
+def parallel_sliding_lid(frames, node_shape, grid_size, omega, debug, save):
+    """
+    Simulates fluid dynamics using the lattice Boltzmann method in a parallelized manner.
+
+    Parameters:
+    - frames (int): Number of simulation frames.
+    - node_shape (tuple): Shape of individual processing nodes in the Cartesian grid (x, y).
+    - grid_size (tuple): Total dimensions of the simulation grid (x, y).
+    - omega (float): Relaxation parameter for collision term.
+
+    Returns:
+    None
+    """
+    
+    # Initialize MPI communication
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
     rank = comm.Get_rank()
     
+    # Extract node shape dimensions
     node_shape_x = node_shape[0]
     node_shape_y = node_shape[1]
     
+    # Calculate dimensions of each node
     node_dim_x = grid_size[0] // node_shape_x
     node_dim_y = grid_size[1] // node_shape_y
     
-    cartcomm = comm.Create_cart(dims=[node_shape_x, node_shape_y],
-                                periods=(False, False),
-                                reorder=False)
-    
-    coords = cartcomm.Get_coords(rank)
+    # Create Cartesian communicator
+    cartcomm = comm.Create_cart(dims=[node_shape_x, node_shape_y],  # Dimensions of the Cartesian grid
+                            periods=(False, False),            # Whether the grid is periodic in each dimension
+                            reorder=False)                    # Whether ranks can be reordered for optimization
 
     
+    # Get coordinates of the current process
+    coords = cartcomm.Get_coords(rank)
+
+    # Define dictionary for communication directions
     direction_dict = {
-        "north" : {
-            "from" : cartcomm.Shift(0, -1)[0],
-            "to"   : cartcomm.Shift(0, -1)[1]
+        "north": {
+            "from": cartcomm.Shift(0, -1)[0],
+            "to": cartcomm.Shift(0, -1)[1]
          },
-        "south" : {
-            "from" : cartcomm.Shift(0, 1)[0],
-            "to"   : cartcomm.Shift(0, 1)[1]
+        "south": {
+            "from": cartcomm.Shift(0, 1)[0],
+            "to": cartcomm.Shift(0, 1)[1]
          },
-        "west" : {
-            "from" : cartcomm.Shift(1, -1)[0],
-            "to"   : cartcomm.Shift(1, -1)[1]
+        "west": {
+            "from": cartcomm.Shift(1, -1)[0],
+            "to": cartcomm.Shift(1, -1)[1]
          },
-        "east" : {
-            "from" : cartcomm.Shift(1, 1)[0],
-            "to"   : cartcomm.Shift(1, 1)[1]
+        "east": {
+            "from": cartcomm.Shift(1, 1)[0],
+            "to": cartcomm.Shift(1, 1)[1]
          }
     }
     
-    
+    # Define process positions for boundary handling
     proc_position = {
-        "east" : direction_dict["east"]["to"] < 0,
-        "west" : direction_dict["west"]["to"] < 0,
-        "north" : direction_dict["north"]["to"] < 0,
-        "south" : direction_dict["south"]["to"] < 0
+        "east": direction_dict["east"]["to"] < 0,
+        "west": direction_dict["west"]["to"] < 0,
+        "north": direction_dict["north"]["to"] < 0,
+        "south": direction_dict["south"]["to"] < 0
     }
     
-    collision_function = lambda density_grid : collision_term(density_grid, omega)
+    # Define the collision function
+    collision_function = lambda density_grid: collision_term(density_grid, omega)
     
-    probability_density_grid = probability_density_grid = create_density_grid(y_shape=node_dim_y, x_shape=node_dim_x, rand=False, uniform=True)
+    # Create initial probability density grid
+    probability_density_grid = create_density_grid(y_shape=node_dim_y, x_shape=node_dim_x, rand=False, uniform=True)
     
+    # Synchronize processes
     cartcomm.Barrier()
-    if rank == 0 :
+    if rank == 0 and debug :
         print("-------------- start")
         start_time = time.time()
         
-    for frame in range(frames) :
-        print('proc ', rank, ' : ', frame, '/', frames, "\t coords : ", coords[0], ',', coords[1] , "\t shape : ", node_dim_x, ',', node_dim_y)
+    # Iterate over frames
+    for frame in range(frames):
+        if debug :
+            print('proc ', rank, ' : ', frame, '/', frames, "\t coords : ", coords[0], ',', coords[1], "\t shape : ", node_dim_x, ',', node_dim_y)
         
-        # send boundary values
+        # Send boundary values
         probability_density_grid = send_cell_boundary(cartcomm, probability_density_grid, direction_dict)
         
+        # Calculate velocity
         u = velocity(probability_density_grid)
         
+        # Perform streaming and collision operations
         probability_density_grid = streaming2D(probability_density_grid, direction, collision=collision_function, \
             boundary=create_sliding_lid_boundaries(
                 north=proc_position["north"],
                 south=proc_position["south"],
                 east=proc_position["east"],
-                west=proc_position["west"]), test=True)
+                west=proc_position["west"]), 
+                test=True)
         
-        
+    # Extract velocity components for saving
     v = u[:, 1:-1, 1:-1]
-    save_mpiio(cartcomm, result_repo+"velocity_x.npy", v[0])
-    save_mpiio(cartcomm, result_repo+"velocity_y.npy", v[1])
     
+    if save :
+        # Save velocity components using MPI I/O
+        save_mpiio(cartcomm, result_repo + "velocity_x.npy", v[0])
+        save_mpiio(cartcomm, result_repo + "velocity_y.npy", v[1])
+    
+    # Synchronize processes
     cartcomm.Barrier()
-    if rank == 0 : 
-        print("-------------- End")
-        end_time = time.time()
-        print("duration : ", end_time - start_time, " seconds")
-        
+    if rank == 0 and debug : 
+            print("-------------- End")
+            end_time = time.time()
+            print("duration : ", end_time - start_time, " seconds")
+    
     return
 
 
 if __name__ == "__main__" :
+    # Create an ArgumentParser object
     parser = argparse.ArgumentParser()
 
-    # arguments
-    parser.add_argument("-w", "--omega", type=float, default=0.7)
-    parser.add_argument('-gs', '--grid_size', nargs='+', type=int, default=(300, 300))
-    parser.add_argument('-ns', '--node_shape', nargs='+', type=int, default=(2, 2))
-    parser.add_argument("-f", "--frames", type=int, default=400)
+    # Define command-line arguments
+    parser.add_argument("-w", "--omega", type=float, default=0.7, help="Relaxation parameter for collision term")
+    parser.add_argument('-gs', '--grid_size', nargs='+', type=int, default=(300, 300), help="Dimensions of the simulation grid (x y)")
+    parser.add_argument('-ns', '--node_shape', nargs='+', type=int, default=(2, 2), help="Shape of individual processing nodes (x y)")
+    parser.add_argument("-f", "--frames", type=int, default=400, help="Number of simulation frames")
+    parser.add_argument("-debug", "--debug", action='store_true', default=False, help="enables debugging")
+    parser.add_argument("-save", "--save", action='store_true', default=False, help="save .npy files")
 
+    # Parse the command-line arguments
     args = parser.parse_args()
-    
+
+    # Call the parallel_sliding_lid function with the parsed arguments
     parallel_sliding_lid(frames=args.frames,
-                         node_shape=args.node_shape,
-                         grid_size=args.grid_size,
-                         omega=args.omega)
+                        node_shape=args.node_shape,
+                        grid_size=args.grid_size,
+                        omega=args.omega,
+                        debug=args.debug,
+                        save = args.save)

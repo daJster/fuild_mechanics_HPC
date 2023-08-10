@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Set the default number of processes
+np=4
+
+# Check if -np argument is provided
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        -np)
+            np="$2"
+            shift 2
+            ;;
+        *)
+            # If no -np argument, break the loop
+            break
+            ;;
+    esac
+done
+
+mpirun -np "$np" --use-hwthread-cpus python3.8 milestone7.py "$@"
